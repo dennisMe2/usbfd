@@ -6,3 +6,13 @@ It was written for a GNU/Linux Bash system using a GOTEK 1000 model, YMMV.
 Just copy it into your bin folder or somewhere else and chmod +x it so you can run it from the command line.
 
 use usbfd -? to get help
+
+
+
+This: 0.9.1 -
+- is the stable initial version that formats, mounts and unmounts (etc...) USB Floppy Emulator images.
+Tested extensively with a cheap GOTEK 1000 Floppy Drive Emulator from Ebay which is connected to my Yamaha Clavinova CVP 109 Piano.
+
+It allows you to efficiently manage (mount / unmount / format) whole ranges of floppy images or just one at a time. Then you can use standard OS functions to copy the data to and from the images quickly.
+
+Its a bash script for Linux because all the existing tools for mounting and formatting USB FDD Emulator images are for Windows.
