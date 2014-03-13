@@ -1,0 +1,158 @@
+#!/bin/bash
+# usbfd; A utility script to manage multiple floppy images on a single USB stick
+# Tested on a GOTEK 1000 floppy model
+# v. 0.91 Dennis Meulensteen 2013 dennis@meulensteen.nl -
+# This is unsupported software because I don't have the time to provide support
+#
+#This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the included
+#    GNU General Public License for more details.
+
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+#Some variables with default values
+TASK="none"
+DEVICE="/dev/sdb"
+DEVICEDEFAULT=1
+OFFSET=1572864
+
+# Must be root for mounting, so check
+if [[ $EUID -ne 0 ]]; then
+   echo "You must be root to do this." 1>&2
+   exit 100
+fi
+
+#handle the options first
+while getopts  "fmuUld:o:" flag; do
+
+#  echo "$flag" $OPTIND $OPTARG
+
+#in order of ascending innocence so innocent options override dangerous ones if someone decides to throw the alphabet at us
+  case "$flag" in 
+  f) TASK="Format";;
+  m) TASK="Mount";;
+  u) TASK="UnMount";;
+  U) TASK="UnmountAll";;
+  l) TASK="List";;
+  d) DEVICE=$OPTARG
+     DEVICEDEFAULT=0
+  ;;
+  o) OFFSET=$OPTARG;;
+
+  ?)
+    echo "Invalid Option.Usage: usbfd -[OPTIONS] [OPERANDS]"
+    echo "Valid Options are:"
+    echo "  -m to mount one or many images "
+    echo "  -u to unmount one or many images"
+    echo "    if -m or u are used you must provide at least one number between 0 and 999 to mount the respective image(s)."
+    echo "  -U to unmount all mounted images at once"
+    echo "  -o NUMBER Provides an offset that corresponds to the distance between the images in bytes (1572864)"
+    echo "  -d DEVICE to set the device your USB stick is at (/dev/sdb)"
+    echo "  -f format one or more floppy images (for a minimum of security you must also provide -d [DEVICE])"
+    echo "OPERANDS are one or many space seperated whole numers or ranges {N..M} corresponding to images on your USB stick"
+    echo "  example of mounting: #usbfd -md /dev/sdd {0..9} 12 18"
+    echo "    {N..M} indicates a range of floppy images to operate on, -f and -u also take ranges."
+  ;;
+
+  :)
+    echo "Missing argument for $OPTARG"
+  ;;
+  esac
+done
+#gets rid of all the complicated switches and their parameters, leaving just the arguments
+shift $(($OPTIND - 1))
+
+  case "$TASK" in
+
+  "Format") 
+    FNAME=$(mktemp) 
+    rm $FNAME
+    if [ $DEVICEDEFAULT == 1 ]
+    then
+      echo "Formatting is dangerous! You must explicitly provide a device (-d)"
+      exit -1
+    fi
+
+    for NUM in "$@"
+    do
+	FLOP=$(printf %03d ${NUM%})
+	# Check the given file exists #
+	if [ -d "/media/usbfd$FLOP" ]
+	  then
+	    echo "usbfd$FLOP is already mounted, try -u first"
+	  else 
+	    mkfs.msdos -vC $FNAME -n FDISK$FLOP 1440|grep volume #using mkfs repeatedly because of the random volume ids and labels
+	    let MYOFFSET=$OFFSET/512*$NUM
+	    err=$(dd if=$FNAME of=$DEVICE seek=$MYOFFSET bs=512c count=36 conv=noerror &> /dev/null) || echo "Format failed on disk $FLOP" #only copy what we need
+	    rm $FNAME
+	fi
+    done
+  ;;
+
+  # mount
+  "Mount") 
+    for NUM in "$@"
+    do
+	FLOP=$(printf %03d ${NUM%})
+	# Check the given file exists #
+	if [ -d "/media/usbfd$FLOP" ]
+	  then
+	   echo "usbfd$FLOP is already mounted, try -u first"
+	  else
+	    mkdir /media/usbfd$FLOP
+	    let MYOFFSET=$OFFSET*$NUM
+	    mount -o loop,offset=$MYOFFSET,users,rw,umask=000 $DEVICE /media/usbfd$FLOP || rmdir /media/usbfd$FLOP 
+	fi
+    done
+  ;;
+
+  # unmount
+  "UnMount") 
+    for NUM in "$@"
+    do
+      FLOP=$(printf %03d ${NUM%})
+      if [ -d "/media/usbfd$FLOP" ]
+	then
+	  umount /media/usbfd$FLOP
+	  rmdir /media/usbfd$FLOP
+	else
+	  echo "usbfd$FLOP was not mounted."
+      fi
+    done
+  ;;
+
+  # unmount all the usbfd... mounts
+  "UnmountAll")
+    for dir in /media/usbfd*/
+    do
+	dir=${dir%*/}
+	if [ -d $dir ]
+	then
+	  umount /media/${dir##*/}
+	  rmdir /media/${dir##*/}
+	fi
+    done
+  ;;
+
+  "List")
+    for dir in /media/usbfd*/
+    do
+	dir=${dir%*/}
+	if [ -d $dir ] 
+	then
+	  echo "Mounted: $dir"
+	fi
+    done
+  ;;
+
+
+  esac
+
+

@@ -1,0 +1,8 @@
+ 
+usbfd is intended as a tool to handle USB thumb drives used with USB FDD emulators.
+
+It was written for a GNU/Linux Bash system using a GOTEK 1000 model, YMMV.
+
+Just copy it into your bin folder or somewhere else and chmod +x it so you can run it from the command line.
+
+use usbfd -? to get help
