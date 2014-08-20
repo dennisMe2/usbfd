@@ -108,7 +108,7 @@ shift $(($OPTIND - 1))
 	  else
 	    mkdir /media/usbfd$FLOP
 	    let MYOFFSET=$OFFSET*$NUM
-	    mount -o loop,offset=$MYOFFSET,users,rw,umask=000 $DEVICE /media/usbfd$FLOP || rmdir /media/usbfd$FLOP 
+	    mount -o loop,offset=$MYOFFSET,users,rw,umask=000 -t msdos $DEVICE /media/usbfd$FLOP || rmdir /media/usbfd$FLOP
 	fi
     done
   ;;
