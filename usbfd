@@ -49,15 +49,20 @@ while getopts  "fmuUld:o:" flag; do
   ?)
     echo "Invalid Option.Usage: usbfd -[OPTIONS] [OPERANDS]"
     echo "Valid Options are:"
-    echo "  -m to mount one or many images "
+    echo "  -f format one or more floppy images (for a minimum of security you must also provide -d [DEVICE])"
+    echo "  -l to list mounted images"
+    echo "  -m to mount one or many images"
+    echo "    up to $(ls -1 /dev/loop? | wc -l) floppy images can be mounted."
     echo "  -u to unmount one or many images"
     echo "    if -m or u are used you must provide at least one number between 0 and 999 to mount the respective image(s)."
     echo "  -U to unmount all mounted images at once"
-    echo "  -o NUMBER Provides an offset that corresponds to the distance between the images in bytes (1572864)"
-    echo "  -d DEVICE to set the device your USB stick is at (/dev/sdb)"
-    echo "  -f format one or more floppy images (for a minimum of security you must also provide -d [DEVICE])"
+    echo
+    echo "  -d DEVICE to set the device your USB stick is at ($DEVICE)"
+    echo "    the choices are "$(ls /dev/sd?)
+    echo "  -o NUMBER Provides an offset that corresponds to the distance between the images in bytes ($OFFSET)"
+    echo
     echo "OPERANDS are one or many space seperated whole numers or ranges {N..M} corresponding to images on your USB stick"
-    echo "  example of mounting: #usbfd -md /dev/sdd {0..9} 12 18"
+    echo "  example of mounting: #usbfd -md $DEVICE {0..9} 12 18"
     echo "    {N..M} indicates a range of floppy images to operate on, -f and -u also take ranges."
   ;;
 
