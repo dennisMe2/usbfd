@@ -30,12 +30,13 @@ if [[ $EUID -ne 0 ]]; then
 fi
 
 #handle the options first
-while getopts  "fmuUld:o:" flag; do
+while getopts  "cfmuUld:o:i:" flag; do
 
 #  echo "$flag" $OPTIND $OPTARG
 
 #in order of ascending innocence so innocent options override dangerous ones if someone decides to throw the alphabet at us
   case "$flag" in 
+  c) TASK="Dump";;
   f) TASK="Format";;
   m) TASK="Mount";;
   u) TASK="UnMount";;
@@ -44,11 +45,13 @@ while getopts  "fmuUld:o:" flag; do
   d) DEVICE=$OPTARG
      DEVICEDEFAULT=0
   ;;
+  i) IMG_FILE=$OPTARG;;
   o) OFFSET=$OPTARG;;
 
   ?)
     echo "Invalid Option.Usage: usbfd -[OPTIONS] [OPERANDS]"
     echo "Valid Options are:"
+    echo "  -c copy (dump) one floppy image file to the specified slot (for a minimum of security you must also provide -d [DEVICE])"
     echo "  -f format one or more floppy images (for a minimum of security you must also provide -d [DEVICE])"
     echo "  -l to list mounted images"
     echo "  -m to mount one or many images"
@@ -59,6 +62,7 @@ while getopts  "fmuUld:o:" flag; do
     echo
     echo "  -d DEVICE to set the device your USB stick is at ($DEVICE)"
     echo "    the choices are "$(ls /dev/sd?)
+    echo "  -i IMAGE_FILE fdd image file (.img) to dump using the -c option."
     echo "  -o NUMBER Provides an offset that corresponds to the distance between the images in bytes ($OFFSET)"
     echo
     echo "OPERANDS are one or many space seperated whole numers or ranges {N..M} corresponding to images on your USB stick"
@@ -71,6 +75,8 @@ while getopts  "fmuUld:o:" flag; do
   ;;
   esac
 done
+echo Image file: $IMG_FILE
+echo Task: $TASK
 #gets rid of all the complicated switches and their parameters, leaving just the arguments
 shift $(($OPTIND - 1))
 
@@ -118,6 +124,20 @@ shift $(($OPTIND - 1))
     done
   ;;
 
+  # copy image
+  "Dump")
+    if [ $DEVICEDEFAULT == 1 ]
+    then
+      echo "Copying is dangerous! You must explicitly provide a device (-d)"
+      exit -1
+    fi
+    for NUM in "$@"
+    do
+            let MYOFFSET=$OFFSET*$NUM
+            dd if=$IMG_FILE ibs=1 obs=1 seek=$MYOFFSET count=$OFFSET of=$DEVICE
+    done
+  ;;
+
   # unmount
   "UnMount") 
     for NUM in "$@"
@@ -159,5 +179,6 @@ shift $(($OPTIND - 1))
 
 
   esac
+
 
 
