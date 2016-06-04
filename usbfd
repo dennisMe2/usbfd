@@ -75,8 +75,7 @@ while getopts  "cfmuUld:o:i:" flag; do
   ;;
   esac
 done
-echo Image file: $IMG_FILE
-echo Task: $TASK
+
 #gets rid of all the complicated switches and their parameters, leaving just the arguments
 shift $(($OPTIND - 1))
 
@@ -179,6 +178,3 @@ shift $(($OPTIND - 1))
 
 
   esac
-
-
-
