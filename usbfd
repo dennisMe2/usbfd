@@ -99,7 +99,7 @@ shift $(($OPTIND - 1))
 	    echo "usbfd$FLOP is already mounted, try -u first"
 	  else 
 	    mkfs.msdos -vC $FNAME -n FDISK$FLOP 1440|grep volume #using mkfs repeatedly because of the random volume ids and labels
-	    let MYOFFSET=$OFFSET/512*$NUM
+	    let MYOFFSET=$OFFSET/512*10#$NUM
 	    err=$(dd if=$FNAME of=$DEVICE seek=$MYOFFSET bs=512c count=36 conv=noerror &> /dev/null) || echo "Format failed on disk $FLOP" #only copy what we need
 	    rm $FNAME
 	fi
@@ -117,8 +117,8 @@ shift $(($OPTIND - 1))
 	   echo "usbfd$FLOP is already mounted, try -u first"
 	  else
 	    mkdir /media/usbfd$FLOP
-	    let MYOFFSET=$OFFSET*$NUM
-	    mount -o loop,offset=$MYOFFSET,users,rw,umask=000 -t msdos $DEVICE /media/usbfd$FLOP || rmdir /media/usbfd$FLOP
+	    let MYOFFSET=$OFFSET*10#$NUM
+	    mount -o loop,offset=$MYOFFSET,users,rw,umask=000 $DEVICE /media/usbfd$FLOP || rmdir /media/usbfd$FLOP
 	fi
     done
   ;;
@@ -132,7 +132,7 @@ shift $(($OPTIND - 1))
     fi
     for NUM in "$@"
     do
-            let MYOFFSET=$OFFSET*$NUM
+            let MYOFFSET=$OFFSET*10#$NUM
             dd if=$IMG_FILE ibs=1 obs=1 seek=$MYOFFSET count=$OFFSET of=$DEVICE
     done
   ;;
@@ -177,4 +177,4 @@ shift $(($OPTIND - 1))
   ;;
 
 
-  esac
+esac
