@@ -1,7 +1,7 @@
 #!/bin/bash
 # usbfd; A utility script to manage multiple floppy images on a single USB stick
 # Tested on a GOTEK 1000 floppy model
-# v. 0.91 Dennis Meulensteen 2013 dennis@meulensteen.nl -
+# v. 0.92 Dennis Meulensteen 2013 dennis@meulensteen.nl -
 # This is unsupported software because I don't have the time to provide support
 #
 #This program is free software: you can redistribute it and/or modify
