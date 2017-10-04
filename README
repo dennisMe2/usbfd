@@ -1,4 +1,6 @@
- 
+usbfd is no longer being maintained. I sold the piano I installed the hardware in and have no way to test changes.
+If somebody wants to take over the project then drop me a line.
+
 usbfd is intended as a tool to handle USB thumb drives used with USB FDD emulators.
 
 It was written for a GNU/Linux Bash system using a GOTEK 1000 model, YMMV.
