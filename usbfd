@@ -16,18 +16,27 @@
 
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+# See https://github.com/dennisMe2/usbfd
 
 #Some variables with default values
 TASK="none"
-DEVICE="/dev/sdb"
+DEVICE="/dev/sdf"
+
+# Determine mountpoint:
+MOUNTPOINT=/run/media/${SUDO_USER}
+if [ ! -d "$MOUNTPOINT" ]; then
+    MOUNTPOINT=/media/${SUDO_USER}
+    if [ ! -d "$MOUNTPOINT" ]; then
+        MOUNTPOINT=/media
+        if [ ! -d "$MOUNTPOINT" ]; then
+            MOUNTPOINT=/mnt
+        fi
+    fi
+fi
+
 DEVICEDEFAULT=1
 OFFSET=1572864
-
-# Must be root for mounting, so check
-if [[ $EUID -ne 0 ]]; then
-   echo "You must be root to do this." 1>&2
-   exit 100
-fi
 
 #handle the options first
 while getopts  "cfmuUld:o:i:" flag; do
@@ -51,6 +60,7 @@ while getopts  "cfmuUld:o:i:" flag; do
   ?)
     echo "Invalid Option.Usage: usbfd -[OPTIONS] [OPERANDS]"
     echo "Valid Options are:"
+    echo "  -s show a list of possibly valid devices to work with"
     echo "  -c copy (dump) one floppy image file to the specified slot (for a minimum of security you must also provide -d [DEVICE])"
     echo "  -f format one or more floppy images (for a minimum of security you must also provide -d [DEVICE])"
     echo "  -l to list mounted images"
@@ -68,13 +78,21 @@ while getopts  "cfmuUld:o:i:" flag; do
     echo "OPERANDS are one or many space seperated whole numers or ranges {N..M} corresponding to images on your USB stick"
     echo "  example of mounting: #usbfd -md $DEVICE {0..9} 12 18"
     echo "    {N..M} indicates a range of floppy images to operate on, -f and -u also take ranges."
+    exit 0
   ;;
 
   :)
     echo "Missing argument for $OPTARG"
+    exit 1
   ;;
   esac
 done
+
+# Must be root for mounting, so check
+if [[ $EUID -ne 0 ]]; then
+   echo "You must be root to do this." 1>&2
+   exit 100
+fi
 
 #gets rid of all the complicated switches and their parameters, leaving just the arguments
 shift $(($OPTIND - 1))
@@ -94,7 +112,7 @@ shift $(($OPTIND - 1))
     do
 	FLOP=$(printf %03d ${NUM%})
 	# Check the given file exists #
-	if [ -d "/media/usbfd$FLOP" ]
+	if [ -d "${MOUNTPOINT}/usbfd$FLOP" ]
 	  then
 	    echo "usbfd$FLOP is already mounted, try -u first"
 	  else 
@@ -112,13 +130,13 @@ shift $(($OPTIND - 1))
     do
 	FLOP=$(printf %03d ${NUM%})
 	# Check the given file exists #
-	if [ -d "/media/usbfd$FLOP" ]
+	if [ -d "${MOUNTPOINT}/usbfd$FLOP" ]
 	  then
 	   echo "usbfd$FLOP is already mounted, try -u first"
 	  else
-	    mkdir /media/usbfd$FLOP
+	    mkdir ${MOUNTPOINT}/usbfd$FLOP
 	    let MYOFFSET=$OFFSET*10#$NUM
-	    mount -o loop,offset=$MYOFFSET,users,rw,umask=000 $DEVICE /media/usbfd$FLOP || rmdir /media/usbfd$FLOP
+	    mount -o loop,offset=$MYOFFSET,users,rw,umask=000,sizelimit=${OFFSET} $DEVICE ${MOUNTPOINT}/usbfd$FLOP || rmdir ${MOUNTPOINT}/usbfd$FLOP
 	fi
     done
   ;;
@@ -142,10 +160,10 @@ shift $(($OPTIND - 1))
     for NUM in "$@"
     do
       FLOP=$(printf %03d ${NUM%})
-      if [ -d "/media/usbfd$FLOP" ]
+      if [ -d "${MOUNTPOINT}/usbfd$FLOP" ]
 	then
-	  umount /media/usbfd$FLOP
-	  rmdir /media/usbfd$FLOP
+	  umount ${MOUNTPOINT}/usbfd$FLOP
+	  rmdir ${MOUNTPOINT}/usbfd$FLOP
 	else
 	  echo "usbfd$FLOP was not mounted."
       fi
@@ -154,19 +172,19 @@ shift $(($OPTIND - 1))
 
   # unmount all the usbfd... mounts
   "UnmountAll")
-    for dir in /media/usbfd*/
+    for dir in ${MOUNTPOINT}/usbfd*/
     do
 	dir=${dir%*/}
 	if [ -d $dir ]
 	then
-	  umount /media/${dir##*/}
-	  rmdir /media/${dir##*/}
+	  umount ${MOUNTPOINT}/${dir##*/}
+	  rmdir ${MOUNTPOINT}/${dir##*/}
 	fi
     done
   ;;
 
   "List")
-    for dir in /media/usbfd*/
+    for dir in ${MOUNTPOINT}/usbfd*/
     do
 	dir=${dir%*/}
 	if [ -d $dir ] 
@@ -175,6 +193,19 @@ shift $(($OPTIND - 1))
 	fi
     done
   ;;
-
-
+  *)
+     devices=$(lsblk -o NAME,FSTYPE,SIZE,LABEL | grep "fat" | grep -v loop | grep -vi boot | tr -s ' ' | column -t -s $' ')
+     if [ -z "$devices" ] ; then
+       devices="(no possibly valid devices detected)"
+     else
+       devices=$(lsblk -o NAME,FSTYPE,SIZE,LABEL | grep "fat\|NAME" | grep -v loop | grep -vi boot | tr -s ' ' | column -t -s $' ')
+     fi
+     echo "Using mount point <$MOUNTPOINT>."
+     echo "List of possibly valid devices to work with:"
+     echo "--------------------------------------------"
+     echo "$devices"
+     echo "--------------------------------------------"
+     echo "Use \"-d /dev/NAME\" switch to specify device."
+	 echo "Use \"-?\" switch for help on usage."
+   ;;
 esac
